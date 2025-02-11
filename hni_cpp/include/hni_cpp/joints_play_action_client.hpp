@@ -21,7 +21,7 @@
 #include <sstream>
 #include <string>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
+#include "ament_index_cpp/ament_index_cpp/get_package_share_directory.hpp"
 #include "boost/filesystem.hpp"
 #include "hni_interfaces/action/joints_play.hpp"
 #include "rclcpp/rclcpp.hpp"

@@ -29,7 +29,9 @@ from hni_interfaces.srv import TextToSpeech
 
 from sound_play.libsoundplay import SoundClient
 
-from sound_play.msg import SoundRequest
+#from sound_play.msg import SoundRequest
+from sound_play_msgs.msg import SoundRequest
+
 
 from std_msgs.msg import String
 
@@ -45,7 +47,9 @@ class GTTSService(Node):
             #language_code="IT-IT", name="it-IT-Neural2-C"  # A female, C male
             #language_code="en-US", name="en-US-Neural2-D"  # C female
             #language_code="en-US", name="en-US-Studio-Q"  # male, O female
-            language_code="en-US", name="en-US-Journey-D"  
+            # language_code="en-US", name="en-US-Journey-D"
+            language_code="es-ES", name="es-ES-Journey-D"
+
         )
 
         # Select the type of audio file you want returned
@@ -57,7 +61,7 @@ class GTTSService(Node):
 
         self.srv = self.create_service(TextToSpeech, "gtts_service", self.gtts_callback)
 
-        self.volume = 0.4 # from 0.1 to 1.0
+        self.volume = 0.9 # from 0.1 to 1.0
 
         self.get_logger().info("GTTSService Server initialized.")
 

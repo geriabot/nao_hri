@@ -80,20 +80,17 @@ ChatActionServer::ChatActionServer(const rclcpp::NodeOptions & options)
     std::bind(&ChatActionServer::handleCancel, this, _1),
     std::bind(&ChatActionServer::handleAccepted, this, _1));
 
-  moves_map_["hello"] = "install/hni_cpp/include/moves/hello.txt";
-  moves_map_["hi"] = "install/hni_cpp/include/moves/hello.txt";
-  moves_map_["bye"] = "install/hni_cpp/include/moves/hello.txt";
-  moves_map_["byebye"] = "install/hni_cpp/include/moves/hello.txt";
-  moves_map_["goodbye"] = "install/hni_cpp/include/moves/hello.txt";
-  moves_map_["good-bye"] = "install/hni_cpp/include/moves/hello.txt";
-  moves_map_["big"] = "install/hni_cpp/include/moves/big.txt";
-  moves_map_["little"] = "install/hni_cpp/include/moves/little.txt";
-  moves_map_["down"] = "install/hni_cpp/include/moves/down.txt";
-  moves_map_["up"] = "install/hni_cpp/include/moves/up.txt";
-  moves_map_["right"] = "install/hni_cpp/include/moves/right.txt";
-  moves_map_["left"] = "install/hni_cpp/include/moves/left.txt";
-  moves_map_["fear"] = "install/hni_cpp/include/moves/fear.txt";
-  moves_map_["scared"] = "install/hni_cpp/include/moves/fear.txt";
+  moves_map_["hola"] = "install/hni_cpp/include/moves/hello.txt";
+  moves_map_["adiós"] = "install/hni_cpp/include/moves/hello.txt";
+  moves_map_["grande"] = "install/hni_cpp/include/moves/big.txt";
+  moves_map_["pequeño"] = "install/hni_cpp/include/moves/little.txt";
+  moves_map_["abajo"] = "install/hni_cpp/include/moves/down.txt";
+  moves_map_["arriba"] = "install/hni_cpp/include/moves/up.txt";
+  moves_map_["derecha"] = "install/hni_cpp/include/moves/right.txt";
+  moves_map_["izquierda"] = "install/hni_cpp/include/moves/left.txt";
+  moves_map_["miedo"] = "install/hni_cpp/include/moves/fear.txt";
+  moves_map_["asustado"] = "install/hni_cpp/include/moves/fear.txt";
+
 
   RCLCPP_INFO(this->get_logger(), "ChatActionServer Initialized");
 }
