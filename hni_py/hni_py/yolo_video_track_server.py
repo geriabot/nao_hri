@@ -86,7 +86,7 @@ class VideoTrackerOb(Node):
 
         self.frame = None
         
-        self._loop_rate = self.create_rate( 1.0 , self.get_clock()) # Hz
+        self._loop_rate = self.create_rate(30.0 , self.get_clock()) # Hz
 
         self.get_logger().info('node initialized')
 
@@ -141,7 +141,7 @@ class VideoTrackerOb(Node):
 
                     img = current_frame.reshape(480, 640, 2)
                     rgb = cv2.cvtColor(img, cv2.COLOR_YUV2BGR_YUYV)
-                    rgb = cv2.rotate(rgb, cv2.ROTATE_180)
+                    # rgb = cv2.rotate(rgb, cv2.ROTATE_180) COmmented for simulator
                     self.frame = rgb
                     
                     # Run YOLOv8 tracking on the frame, persisting tracks between frames
@@ -158,6 +158,8 @@ class VideoTrackerOb(Node):
                     try:
                         #track_ids = results[0].boxes.id.int().cuda().tolist()
                         track_ids = results[0].boxes.id.int().cpu().tolist()
+
+                        annotated_frame = results[0].plot()
 
                         # Plot the tracks
                         for box, track_id in zip(boxes, track_ids):
@@ -181,6 +183,10 @@ class VideoTrackerOb(Node):
 
                             #annotated_frame = results[0].plot()
                             #cv2.imshow("YOLOv8 Tracking", annotated_frameed_frame)
+
+                        # Show the annotated frame
+                        cv2.imshow("YOLOv8 Tracking", annotated_frame)
+                        cv2.waitKey(1)
                                 
 
                     except AttributeError:
@@ -189,12 +195,16 @@ class VideoTrackerOb(Node):
                         center.y = -1.0
                         feedback_msg.center = center
                         goal_handle.publish_feedback(feedback_msg)
+                        # Print image without detection
+                        cv2.imshow("YOLOv8 Tracking", self.frame)
+                        cv2.waitKey(1)
                         
                     except:
                         self.get_logger().error('something else get wrong')
 
                     self._loop_rate.sleep()    
                     # Visualize the results on the frame
+                
                        
 
         goal_handle.succeed()    
