@@ -18,6 +18,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rcutils REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 
 
 # Include Cpp "include" directory
@@ -77,6 +78,7 @@ target_compile_definitions(joints_play_client
 )
 
 set(JOINTS_PLAY_CLIENT_INCLUDE_DEPENDS
+  "ament_index_cpp"
   "hni_interfaces"
   "rclcpp"
   "rclcpp_action"
@@ -158,6 +160,7 @@ target_compile_definitions(head_track_client
   PRIVATE "CUSTOM_ACTION_CPP_BUILDING_DLL"
 )
 ament_target_dependencies(head_track_client
+  "ament_index_cpp"
   "rclcpp"
   "rclcpp_action"
   "rclcpp_components"
@@ -275,6 +278,7 @@ rclcpp_components_register_node(gstt_client
 
 
 set(GSTT_CLIENT_INCLUDE_DEPENDS
+  "ament_index_cpp"
   "rclcpp"
   "rclcpp_components"
   "std_srvs")
@@ -310,6 +314,7 @@ rclcpp_components_register_node(gtts_client
 )
 
 set(GTTS_CLIENT_INCLUDE_DEPENDS
+  "ament_index_cpp"
   "hni_interfaces"
   "rclcpp"
   "rclcpp_components"
@@ -345,6 +350,7 @@ rclcpp_components_register_node(chat_serv_client
 )
 
 set(CHAT_CLIENT_INCLUDE_DEPENDS
+  "ament_index_cpp"
   "hni_interfaces"
   "rclcpp"
   "rclcpp_components"
