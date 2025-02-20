@@ -141,7 +141,7 @@ class VideoTrackerOb(Node):
 
                     img = current_frame.reshape(480, 640, 2)
                     rgb = cv2.cvtColor(img, cv2.COLOR_YUV2BGR_YUYV)
-                    # rgb = cv2.rotate(rgb, cv2.ROTATE_180) COmmented for simulator
+                    rgb = cv2.rotate(rgb, cv2.ROTATE_180)
                     self.frame = rgb
                     
                     # Run YOLOv8 tracking on the frame, persisting tracks between frames
