@@ -135,15 +135,11 @@ class VideoTrackerOb(Node):
 
                 if self.received_frame is not None:
                     current_frame = self.br.imgmsg_to_cv2(self.received_frame)
-                    #print('output dtype      : {}'.format(current_frame.dtype))
-                    #print('output shape      : {}'.format(current_frame.shape))
-                    #print('output encoding      : {}'.format(current_frame.tostring()))
 
-                    img = current_frame.reshape(480, 640, 2)
-                    rgb = cv2.cvtColor(img, cv2.COLOR_YUV2BGR_YUYV)
-                    rgb = cv2.rotate(rgb, cv2.ROTATE_180)
-                    self.frame = rgb
-                    
+                    print(f"Received frame shape: {current_frame.shape}, dtype: {current_frame.dtype}")
+
+                    self.frame = current_frame.reshape(480, 640, 3)
+
                     # Run YOLOv8 tracking on the frame, persisting tracks between frames
                     results = self.model.track(self.frame, persist=True, tracker="bytetrack.yaml")
 
