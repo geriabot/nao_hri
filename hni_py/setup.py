@@ -29,6 +29,7 @@ setup(
             'gtts_service = hni_py.gtts_service:main',
             'video_track_client = hni_py.video_track_client:main',
             'yolo_video_track_server = hni_py.yolo_video_track_server:main',
+            'mode_switcher = hni_py.mode_switcher:main',
         ],
     },
     
