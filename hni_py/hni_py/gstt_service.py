@@ -13,7 +13,7 @@ import time
 SAMPLE_RATE = 16000
 FRAME_DURATION = 30  # Duración del frame en ms (10, 20, 30)
 CHANNELS = 1
-VAD_SENSITIVITY = 3  # Sensibilidad del VAD (0 = más permisivo, 3 = más estricto)
+VAD_SENSITIVITY = 0  # Sensibilidad del VAD (0 = más permisivo, 3 = más estricto)
 SILENCE_DURATION = 1.5  # Tiempo en segundos de silencio antes de parar
 
 class GSTTService(Node):
