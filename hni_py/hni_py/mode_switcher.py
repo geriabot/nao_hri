@@ -1,22 +1,21 @@
 import rclpy
 from rclpy.node import Node
-from rclpy.action import ActionClient
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
+from rclpy.qos import QoSProfile
 import os
 import time
 
 from nao_lola_command_msgs.msg import JointStiffnesses, JointPositions
 from biped_interfaces.msg import SolePoses
-from nao_pos_interfaces.action import PosPlay
 
 class ModeSwitcher(Node):
     def __init__(self):
         super().__init__('mode_switcher')
 
-        self.sub_target = self.create_subscription(
-            Twist, '/target', self.target_callback, 10
-        )
+        self.get_logger().info("Initializing ModeSwitcher...")
+
+        self.sub_target = self.create_subscription(Twist, '/target', self.target_callback, 10)
 
         self.pub_walk_status = self.create_publisher(Bool, '/walk_status', 10)
         self.pub_walk_control = self.create_publisher(Bool, '/walk_control', 10)
@@ -24,45 +23,67 @@ class ModeSwitcher(Node):
         self.pub_initial_joints_position = self.create_publisher(JointPositions, '/effectors/joint_positions', 10)
         self.pub_initial_position = self.create_publisher(SolePoses, '/motion/sole_poses', 10)
 
-        self.action_client = ActionClient(self, PosPlay, '/nao_pos_action_legs')
+        self.pub_action_req = self.create_publisher(String, "action_req_legs", 10)
+
+        self.sub_action_status = self.create_subscription(
+            String, "/nao_pos_action/status", self.action_status_callback, QoSProfile(depth=10)
+        )
 
         self.is_walking = False
         self.is_standing = False
-        self.stand_attempts = 0
-        self.stand_timer = None
+        self.swing_completed = False
+        self.stand_completed = False
 
         self.launch_base_nodes()
         self.launch_experiments()
         self.set_initial_positions()
+        self.set_initial_status()
+
+        self.get_logger().info("ModeSwitcher started successfully.")
 
     def launch_base_nodes(self):
+        self.get_logger().info("Launching base nodes...")
         os.system("gnome-terminal --tab --title='Nao IK' -- bash -c 'ros2 run nao_ik nao_ik; exec bash'")
         os.system("gnome-terminal --tab --title='Nao Phase Provider' -- bash -c 'ros2 run nao_phase_provider nao_phase_provider --ros-args -r fsr:=/sensors/fsr; exec bash'")
         os.system("gnome-terminal --tab --title='Walk' -- bash -c 'ros2 run walk walk; exec bash'")
         os.system("gnome-terminal --title='Teleop Keyboard' -- bash -c 'ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args --remap cmd_vel:=target; exec bash'")
 
     def launch_experiments(self):
+        self.get_logger().info("Launching experiments...")
         os.system("gnome-terminal --tab --title='Experiment PC' -- bash -c 'cd ~/Documents/Cuarto/TFG/nao_ws && ros2 launch hni_cpp experiment_pc_launch.py; exec bash'")
         os.system("gnome-terminal --tab --title='Experiment NAO' -- bash -c 'cd ~/Documents/Cuarto/TFG/nao_ws && ros2 launch hni_cpp experiment_nao_launch.py; exec bash'")
 
     def set_initial_positions(self):
+        self.get_logger().info("Waiting for subscribers to connect for initial positions...")
         while self.pub_initial_joints_position.get_subscription_count() == 0 and rclpy.ok():
             time.sleep(0.5)
-
         if rclpy.ok():
             msg = JointPositions(indexes=[3, 19, 2, 18], positions=[0.2, -0.2, 1.5, 1.5])
             self.pub_initial_joints_position.publish(msg)
+            self.get_logger().info("Initial positions published.")
+
+    def set_initial_status(self):
+        self.get_logger().info("Waiting for subscribers to connect for walk status...")
+        while self.pub_walk_status.get_subscription_count() == 0 and rclpy.ok():
+            time.sleep(0.5)
+        if rclpy.ok():
+            self.pub_walk_status.publish(Bool(data=False))
+            self.get_logger().info("Initial walk status published.")
 
     def target_callback(self, msg):
+        self.get_logger().info("Message received on /target. Evaluating movement...")
         if self.is_moving(msg):
             if not self.is_walking:
-                self.is_walking = True
+                self.get_logger().info("The robot is trying to start walking.")
+                self.pub_walk_status.publish(Bool(data=True))
                 self.ensure_stand_then_walk()
         else:
             if self.is_walking:
+                self.get_logger().info("The robot stops.")
                 self.is_walking = False
                 self.pub_walk_status.publish(Bool(data=False))
                 self.pub_walk_control.publish(Bool(data=False))
+                self.is_standing = False
                 self.ensure_stand()
 
     def is_moving(self, msg):
@@ -72,67 +93,63 @@ class ModeSwitcher(Node):
         ])
 
     def ensure_stand_then_walk(self):
+        if not self.swing_completed:
+            self.get_logger().info("Waiting for 'swing' to finish before executing 'stand'...")
+            return
+            
         if not self.is_standing:
-            self.get_logger().info("Esperando a que 'stand' termine antes de caminar...")
-            self.try_stand(callback=self.start_walking)
+            self.get_logger().info("Executing 'stand'...")
+            self.try_stand()
         else:
             self.start_walking()
-
-
-    def start_walking(self):
-        self.set_stiffness()
-        self.set_initial_position()
-        self.pub_walk_status.publish(Bool(data=True))
-        self.pub_walk_control.publish(Bool(data=True))
 
     def ensure_stand(self):
         if not self.is_standing:
             self.try_stand()
 
-    def try_stand(self, callback=None):
-        if self.is_standing:
-            if callback:
-                callback()
-            return
+    def try_stand(self):
+        self.get_logger().info("Publishing 'stand' on action_req_legs...")
+        msg = String()
+        msg.data = "stand"
+        self.pub_action_req.publish(msg)
 
-        self.stand_attempts += 1
-        goal_msg = PosPlay.Goal()
-        goal_msg.action_name = "stand"
+    def action_status_callback(self, msg):
+        self.get_logger().info(f"Action status received: {msg.data}")
 
-        future_goal = self.action_client.send_goal_async(goal_msg)
-        future_goal.add_done_callback(lambda future: self.stand_position_result_callback(future, callback))
+        if "succeeded" in msg.data.lower():
+            if "only_legs" in msg.data.lower():
+                self.get_logger().info("Swing finished...")
+                self.swing_completed = True
+            elif "stand" in msg.data.lower():
+                self.get_logger().info("Stand completed...")
+                self.stand_completed = True
+                self.is_standing = True
 
-    def stand_position_result_callback(self, future, callback):
-        goal_handle = future.result()
-        if not goal_handle or not goal_handle.accepted:
-            self.create_timer(1.0, lambda: self.try_stand(callback))
-            return
-
-        result_future = goal_handle.get_result_async()
-        result_future.add_done_callback(lambda future: self.stand_position_completed(future, callback))
-
-    def stand_position_completed(self, future, callback):
-        """ Verifica si 'stand' fue exitoso antes de ejecutar el callback. """
-        result = future.result().result
-        if result and result.success:
-            self.get_logger().info("Acción 'stand' completada con éxito.")
-            self.is_standing = True  # Ahora sí está en 'stand'
-            if callback:
-                self.get_logger().info("Ejecutando callback después de 'stand'.")
-                callback()  # Solo aquí llamamos a 'start_walking()'
-        else:
-            self.get_logger().error("Fallo en 'stand'. Reintentando en 1 segundo...")
-            self.create_timer(1.0, lambda: self.try_stand(callback))
+    def start_walking(self):
+        self.get_logger().info("Starting walk...")
+        self.set_stiffness()
+        self.set_walk_sole_position()
+        # Sleep so that the robot has time to get to the initial position
+        time.sleep(1.0)
+        self.pub_walk_control.publish(Bool(data=True))
+        self.is_walking = True
+        self.is_standing = False
+        self.swing_completed = False
+        self.get_logger().info("Walk started successfully.")
 
     def set_stiffness(self):
+        self.get_logger().info("Setting joint stiffness.")
         msg = JointStiffnesses(indexes=list(range(25)), stiffnesses=[1.0] * 25)
         self.pub_stiffness.publish(msg)
+        self.get_logger().info("Stiffness set.")
 
-    def set_initial_position(self):
+    def set_walk_sole_position(self):
+        self.get_logger().info("Setting initial position.")
         msg = SolePoses()
         msg.l_sole.position.y, msg.l_sole.position.z = 0.05, -0.315
         msg.r_sole.position.y, msg.r_sole.position.z = -0.05, -0.315
         self.pub_initial_position.publish(msg)
+        self.get_logger().info("Initial position set.")
 
 def main(args=None):
     rclpy.init(args=args)
@@ -140,6 +157,7 @@ def main(args=None):
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
+        node.get_logger().info("Stopping ModeSwitcher.")
         node.destroy_node()
         rclpy.shutdown()
 
