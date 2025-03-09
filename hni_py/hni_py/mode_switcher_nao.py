@@ -55,7 +55,10 @@ class ModeSwitcher(Node):
 
     def launch_experiments(self):
         self.get_logger().info("Launching experiments...")
-        subprocess.Popen(["ros2", "launch", "hni_cpp", "experiment_nao_launch.py"])
+
+        command = "cd ~/nao_ws && ros2 launch hni_cpp experiment_nao_launch.py"
+    
+        subprocess.Popen(["bash", "-c", command])
 
     def set_initial_positions(self):
         self.get_logger().info("Waiting for subscribers to connect for initial positions...")
