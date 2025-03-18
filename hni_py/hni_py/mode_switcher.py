@@ -32,7 +32,9 @@ class ModeSwitcher(Node):
         self.is_walking = False
         self.is_standing = False
         self.swing_completed = False
-        self.stand_completed = False
+
+        self.last_processed_time = self.get_clock().now()
+        self.min_processing_interval = 2.0
 
         self.launch_base_nodes()
         self.launch_experiments()
@@ -50,8 +52,12 @@ class ModeSwitcher(Node):
 
     def launch_experiments(self):
         self.get_logger().info("Launching experiments...")
-        os.system("gnome-terminal --tab --title='Experiment PC' -- bash -c 'cd ~/Documents/Cuarto/TFG/nao_ws && ros2 launch hni_cpp experiment_pc_launch.py; exec bash'")
-        os.system("gnome-terminal --tab --title='Experiment NAO' -- bash -c 'cd ~/Documents/Cuarto/TFG/nao_ws && ros2 launch hni_cpp experiment_nao_launch.py; exec bash'")
+
+        # Get workspace path from environment variable, fallback to default if not set
+        workspace_path = os.getenv("NAO_WS_PATH", "~/Documents/Cuarto/TFG/nao_ws")
+
+        os.system(f"gnome-terminal --tab --title='Experiment PC' -- bash -c 'cd {workspace_path} && ros2 launch hni_cpp experiment_pc_launch.py; exec bash'")
+        os.system(f"gnome-terminal --tab --title='Experiment NAO' -- bash -c 'cd {workspace_path} && ros2 launch hni_cpp experiment_nao_launch.py; exec bash'")
 
     def set_initial_positions(self):
         self.get_logger().info("Waiting for subscribers to connect for initial positions...")
@@ -71,6 +77,13 @@ class ModeSwitcher(Node):
             self.get_logger().info("Initial walk status published.")
 
     def target_callback(self, msg):
+        current_time = self.get_clock().now()
+        elapsed_time = (current_time - self.last_processed_time).nanoseconds / 1e9
+        if elapsed_time < self.min_processing_interval:
+            return
+        
+        self.last_processed_time = current_time
+        
         self.get_logger().info("Message received on /target. Evaluating movement...")
         if self.is_moving(msg):
             if not self.is_walking:
@@ -117,12 +130,12 @@ class ModeSwitcher(Node):
         self.get_logger().info(f"Action status received: {msg.data}")
 
         if "succeeded" in msg.data.lower():
-            if "only_legs" in msg.data.lower():
+            if "only_legs_fast" in msg.data.lower():
                 self.get_logger().info("Swing finished...")
                 self.swing_completed = True
+                self.is_standing = False
             elif "stand" in msg.data.lower():
                 self.get_logger().info("Stand completed...")
-                self.stand_completed = True
                 self.is_standing = True
 
     def start_walking(self):

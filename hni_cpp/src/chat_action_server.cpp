@@ -72,24 +72,42 @@ ChatActionServer::ChatActionServer(const rclcpp::NodeOptions & options)
   this->leds_play_act_client_ =
     rclcpp_action::create_client<nao_led_interfaces::action::LedsPlay>(this, "leds_play");
 
-  this->joints_act_client_ =
-    rclcpp_action::create_client<hni_interfaces::action::JointsPlay>(this, "joints_play");
+  // this->joints_act_client_ =
+  //   rclcpp_action::create_client<hni_interfaces::action::JointsPlay>(this, "joints_play");
+
+  // nao_pos action publisher
+  this->nao_pos_publisher_ = this->create_publisher<std_msgs::msg::String>("/action_req_arms", 10);
 
   this->action_server_ = rclcpp_action::create_server<hni_interfaces::action::ChatPlay>(
     this, "chat_play", std::bind(&ChatActionServer::handleGoal, this, _1, _2),
     std::bind(&ChatActionServer::handleCancel, this, _1),
     std::bind(&ChatActionServer::handleAccepted, this, _1));
 
-  moves_map_["hola"] = "install/hni_cpp/include/moves/hello.txt";
-  moves_map_["adiós"] = "install/hni_cpp/include/moves/hello.txt";
-  moves_map_["grande"] = "install/hni_cpp/include/moves/big.txt";
-  moves_map_["pequeño"] = "install/hni_cpp/include/moves/little.txt";
-  moves_map_["abajo"] = "install/hni_cpp/include/moves/down.txt";
-  moves_map_["arriba"] = "install/hni_cpp/include/moves/up.txt";
-  moves_map_["derecha"] = "install/hni_cpp/include/moves/right.txt";
-  moves_map_["izquierda"] = "install/hni_cpp/include/moves/left.txt";
-  moves_map_["miedo"] = "install/hni_cpp/include/moves/fear.txt";
-  moves_map_["asustado"] = "install/hni_cpp/include/moves/fear.txt";
+
+  // Definir palabras eliminando las letras con tilde o ñ (solución rápida pero efectiva
+  // a que se filtre solo ASCII básico)
+  // moves_map_["hola"] = "install/hni_cpp/include/moves/hello.txt";
+  // moves_map_["adis"] = "install/hni_cpp/include/moves/hello.txt"; // Adiós
+  // moves_map_["grande"] = "install/hni_cpp/include/moves/big.txt";
+  // moves_map_["pequeño"] = "install/hni_cpp/include/moves/little.txt";
+  // moves_map_["abajo"] = "install/hni_cpp/include/moves/down.txt";
+  // moves_map_["arriba"] = "install/hni_cpp/include/moves/up.txt";
+  // moves_map_["derecha"] = "install/hni_cpp/include/moves/right.txt";
+  // moves_map_["izquierda"] = "install/hni_cpp/include/moves/left.txt";
+  // moves_map_["miedo"] = "install/hni_cpp/include/moves/fear.txt";
+  // moves_map_["asustado"] = "install/hni_cpp/include/moves/fear.txt";
+
+  moves_map_["hola"] = "hello";
+  moves_map_["adis"] = "hello";  // Adiós
+  moves_map_["grande"] = "big";
+  moves_map_["pequeo"] = "small";
+  moves_map_["abajo"] = "down";
+  moves_map_["arriba"] = "up";
+  moves_map_["derecha"] = "right";
+  moves_map_["izquierda"] = "left";
+  moves_map_["miedo"] = "fear";
+  moves_map_["asustado"] = "fear";
+  moves_map_["bailar"] = "dance1";
 
 
   RCLCPP_INFO(this->get_logger(), "ChatActionServer Initialized");
@@ -128,14 +146,14 @@ rclcpp_action::GoalResponse ChatActionServer::handleGoal(
     RCLCPP_INFO(this->get_logger(), "chat_service not available, waiting again...");
   }
 
-  while (!joints_act_client_->wait_for_action_server(1s)) {
-    if (!rclcpp::ok()) {
-      RCLCPP_ERROR(
-        this->get_logger(), "Interrupted while waiting for joints_play action server. Exiting.");
-      return rclcpp_action::GoalResponse::REJECT;
-    }
-    RCLCPP_INFO(this->get_logger(), "joints_play action server not available, waiting again...");
-  }
+  // while (!joints_act_client_->wait_for_action_server(1s)) {
+  //   if (!rclcpp::ok()) {
+  //     RCLCPP_ERROR(
+  //       this->get_logger(), "Interrupted while waiting for joints_play action server. Exiting.");
+  //     return rclcpp_action::GoalResponse::REJECT;
+  //   }
+  //   RCLCPP_INFO(this->get_logger(), "joints_play action server not available, waiting again...");
+  // }
 
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
@@ -341,23 +359,26 @@ void ChatActionServer::execute(
             // execute move
             action_path = moves_map_[key_words[i]];
 
-            auto goal_msg = hni_interfaces::action::JointsPlay::Goal();
-            goal_msg.path = action_path;
+            std_msgs::msg::String action_msg;
+            action_msg.data = action_path; 
+            nao_pos_publisher_->publish(action_msg);
+            RCLCPP_INFO(this->get_logger(), ("Sending action to nao_pos_server: " + key_words[i]).c_str());
 
-            auto send_goal_options =
-              rclcpp_action::Client<hni_interfaces::action::JointsPlay>::SendGoalOptions();
 
-            send_goal_options.goal_response_callback = std::bind(
-              &ChatActionServer::jointsPlayGoalResponseCallback, this, std::placeholders::_1);
-            // send_goal_options.feedback_callback =
-            //     std::bind(&ChatActionServer::jointsPlayFeedbackCallback, this, std::placeholders::_1,
-            //     std::placeholders::_2);
-            send_goal_options.result_callback =
-              std::bind(&ChatActionServer::jointsPlayResultCallback, this, std::placeholders::_1);
+            // auto send_goal_options =
+            //   rclcpp_action::Client<hni_interfaces::action::JointsPlay>::SendGoalOptions();
 
-            RCLCPP_DEBUG(this->get_logger(), (" jointsPlay Sending goal: " + action_path).c_str());
+            // send_goal_options.goal_response_callback = std::bind(
+            //   &ChatActionServer::jointsPlayGoalResponseCallback, this, std::placeholders::_1);
+            // // send_goal_options.feedback_callback =
+            // //     std::bind(&ChatActionServer::jointsPlayFeedbackCallback, this, std::placeholders::_1,
+            // //     std::placeholders::_2);
+            // send_goal_options.result_callback =
+            //   std::bind(&ChatActionServer::jointsPlayResultCallback, this, std::placeholders::_1);
 
-            this->joints_act_client_->async_send_goal(goal_msg, send_goal_options);
+            // RCLCPP_DEBUG(this->get_logger(), (" jointsPlay Sending goal: " + action_path).c_str());
+
+            // this->joints_act_client_->async_send_goal(goal_msg, send_goal_options);
           }
         }
       }
@@ -746,44 +767,44 @@ void ChatActionServer::eyesLoop(bool flag)
 
 /*############## JOINTS PLAY ACTION CLIENT ##############*/
 
-void ChatActionServer::jointsPlayGoalResponseCallback(
-  const rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::SharedPtr &
-    goal_handle)
-{
-  if (!goal_handle) {
-    RCLCPP_ERROR(this->get_logger(), "jointsPlay goal was rejected by server");
-  } else {
-    RCLCPP_INFO(this->get_logger(), "jointsPlay goal accepted by server, waiting for result");
-  }
-}
+// void ChatActionServer::jointsPlayGoalResponseCallback(
+//   const rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::SharedPtr &
+//     goal_handle)
+// {
+//   if (!goal_handle) {
+//     RCLCPP_ERROR(this->get_logger(), "jointsPlay goal was rejected by server");
+//   } else {
+//     RCLCPP_INFO(this->get_logger(), "jointsPlay goal accepted by server, waiting for result");
+//   }
+// }
 
-void ChatActionServer::jointsPlayFeedbackCallback(
-  rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::SharedPtr,
-  const std::shared_ptr<const hni_interfaces::action::JointsPlay::Feedback> feedback)
-{
-  // TODO
-}
+// void ChatActionServer::jointsPlayFeedbackCallback(
+//   rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::SharedPtr,
+//   const std::shared_ptr<const hni_interfaces::action::JointsPlay::Feedback> feedback)
+// {
+//   // TODO
+// }
 
-void ChatActionServer::jointsPlayResultCallback(
-  const rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::WrappedResult & result)
-{
-  switch (result.code) {
-    case rclcpp_action::ResultCode::SUCCEEDED:
-      break;
-    case rclcpp_action::ResultCode::ABORTED:
-      RCLCPP_WARN(this->get_logger(), " jointsPlay Goal was aborted");
-      return;
-    case rclcpp_action::ResultCode::CANCELED:
-      RCLCPP_WARN(this->get_logger(), "jointsPlay Goal was canceled");
-      return;
-    default:
-      RCLCPP_ERROR(this->get_logger(), "jointsPlay Unknown result code");
-      return;
-  }
+// void ChatActionServer::jointsPlayResultCallback(
+//   const rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::WrappedResult & result)
+// {
+//   switch (result.code) {
+//     case rclcpp_action::ResultCode::SUCCEEDED:
+//       break;
+//     case rclcpp_action::ResultCode::ABORTED:
+//       RCLCPP_WARN(this->get_logger(), " jointsPlay Goal was aborted");
+//       return;
+//     case rclcpp_action::ResultCode::CANCELED:
+//       RCLCPP_WARN(this->get_logger(), "jointsPlay Goal was canceled");
+//       return;
+//     default:
+//       RCLCPP_ERROR(this->get_logger(), "jointsPlay Unknown result code");
+//       return;
+//   }
 
-  if (result.result->success)
-    RCLCPP_INFO(this->get_logger(), "Joints posisitions regulary played.");
-}
+//   if (result.result->success)
+//     RCLCPP_INFO(this->get_logger(), "Joints posisitions regulary played.");
+// }
 
 }  // namespace hni_chat_action_server
 
