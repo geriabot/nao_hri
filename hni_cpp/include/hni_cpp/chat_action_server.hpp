@@ -41,6 +41,7 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include "std_srvs/srv/set_bool.hpp"
+#include "std_msgs/msg/string.hpp"
 
 namespace hni_chat_action_server
 {
@@ -77,16 +78,16 @@ private:
       goal_handle);
 
   // joints play action client
-  rclcpp_action::Client<hni_interfaces::action::JointsPlay>::SharedPtr joints_act_client_;
-  void jointsPlayGoalResponseCallback(
-    const rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::SharedPtr &
-      goal_handle);
-  void jointsPlayFeedbackCallback(
-    rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::SharedPtr,
-    const std::shared_ptr<const hni_interfaces::action::JointsPlay::Feedback> feedback);
-  void jointsPlayResultCallback(
-    const rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::WrappedResult &
-      result);
+  // rclcpp_action::Client<hni_interfaces::action::JointsPlay>::SharedPtr joints_act_client_;
+  // void jointsPlayGoalResponseCallback(
+  //   const rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::SharedPtr &
+  //     goal_handle);
+  // void jointsPlayFeedbackCallback(
+  //   rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::SharedPtr,
+  //   const std::shared_ptr<const hni_interfaces::action::JointsPlay::Feedback> feedback);
+  // void jointsPlayResultCallback(
+  //   const rclcpp_action::ClientGoalHandle<hni_interfaces::action::JointsPlay>::WrappedResult &
+  //     result);
 
   // leds play action client
   rclcpp_action::Client<nao_led_interfaces::action::LedsPlay>::SharedPtr leds_play_act_client_;
@@ -100,6 +101,9 @@ private:
   void ledsPlayResultCallback(
     const rclcpp_action::ClientGoalHandle<nao_led_interfaces::action::LedsPlay>::WrappedResult &
       result);
+
+  // nao_pos_server publisher
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr nao_pos_publisher_;
 
   // parameters
   const double kSecPerWord_;

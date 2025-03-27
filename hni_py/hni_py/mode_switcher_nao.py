@@ -7,6 +7,7 @@ import os
 import time
 import subprocess
 
+
 from nao_lola_command_msgs.msg import JointStiffnesses, JointPositions
 from biped_interfaces.msg import SolePoses
 
@@ -14,7 +15,7 @@ class ModeSwitcher(Node):
     def __init__(self):
         super().__init__('mode_switcher')
 
-        self.get_logger().info("Initializing ModeSwitcher nao...")
+        self.get_logger().info("Initializing ModeSwitcher...")
 
         self.sub_target = self.create_subscription(Twist, '/target', self.target_callback, 10)
 
@@ -33,33 +34,37 @@ class ModeSwitcher(Node):
         self.is_walking = False
         self.is_standing = False
         self.swing_completed = False
-        self.stand_completed = False
+
+        self.last_processed_time = self.get_clock().now()
+        self.min_processing_interval = 2.0
 
         self.launch_base_nodes()
         self.launch_experiments()
         self.set_initial_positions()
         self.set_initial_status()
 
-        self.get_logger().info("ModeSwitcher nao started successfully.")
+        self.get_logger().info("ModeSwitcher started successfully.")
 
     def launch_base_nodes(self):
         self.get_logger().info("Launching base nodes...")
 
-        processes = [
-            subprocess.Popen(["ros2", "run", "nao_ik", "nao_ik"]),
-            subprocess.Popen(["ros2", "run", "nao_phase_provider", "nao_phase_provider"]),
-            subprocess.Popen(["ros2", "run", "walk", "walk"])
-        ]
-
-        self.get_logger().info("Base nodes launched.")
+        subprocess.Popen(["ros2", "run", "nao_ik", "nao_ik"])
+        subprocess.Popen([
+            "ros2", "run", "nao_phase_provider", "nao_phase_provider",
+            "--ros-args", "-r", "fsr:=/sensors/fsr"
+        ])
+        subprocess.Popen(["ros2", "run", "walk", "walk"])
 
     def launch_experiments(self):
         self.get_logger().info("Launching experiments...")
 
-        command = "cd ~/nao_ws && ros2 launch hni_cpp experiment_nao_launch.py"
-    
-        subprocess.Popen(["bash", "-c", command])
+        # Get workspace path from environment variable, fallback to default if not set
+        workspace_path = os.getenv("NAO_WS_PATH", "/home/nao/nao_ws")
 
+        subprocess.Popen([
+            "ros2", "launch", "hni_cpp", "experiment_nao_launch.py"
+        ], cwd=workspace_path)
+        
     def set_initial_positions(self):
         self.get_logger().info("Waiting for subscribers to connect for initial positions...")
         while self.pub_initial_joints_position.get_subscription_count() == 0 and rclpy.ok():
@@ -78,6 +83,13 @@ class ModeSwitcher(Node):
             self.get_logger().info("Initial walk status published.")
 
     def target_callback(self, msg):
+        current_time = self.get_clock().now()
+        elapsed_time = (current_time - self.last_processed_time).nanoseconds / 1e9
+        if elapsed_time < self.min_processing_interval:
+            return
+        
+        self.last_processed_time = current_time
+        
         self.get_logger().info("Message received on /target. Evaluating movement...")
         if self.is_moving(msg):
             if not self.is_walking:
@@ -124,12 +136,12 @@ class ModeSwitcher(Node):
         self.get_logger().info(f"Action status received: {msg.data}")
 
         if "succeeded" in msg.data.lower():
-            if "only_legs" in msg.data.lower():
+            if "only_legs_fast" in msg.data.lower():
                 self.get_logger().info("Swing finished...")
                 self.swing_completed = True
+                self.is_standing = False
             elif "stand" in msg.data.lower():
                 self.get_logger().info("Stand completed...")
-                self.stand_completed = True
                 self.is_standing = True
 
     def start_walking(self):
@@ -164,7 +176,7 @@ def main(args=None):
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info("Stopping ModeSwitcher nao.")
+        node.get_logger().info("Stopping ModeSwitcher.")
         node.destroy_node()
         rclpy.shutdown()
 
