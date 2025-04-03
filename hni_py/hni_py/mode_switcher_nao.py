@@ -26,6 +26,7 @@ class ModeSwitcher(Node):
         self.pub_initial_position = self.create_publisher(SolePoses, '/motion/sole_poses', 10)
 
         self.pub_action_req = self.create_publisher(String, "action_req_legs", 10)
+        self.pub_action_req_arms = self.create_publisher(String, "action_req_arms", 10)
 
         self.sub_action_status = self.create_subscription(
             String, "/nao_pos_action/status", self.action_status_callback, QoSProfile(depth=10)
@@ -148,8 +149,13 @@ class ModeSwitcher(Node):
         self.get_logger().info("Starting walk...")
         self.set_stiffness()
         self.set_walk_sole_position()
+        # Publish arms action request
+        msg = String()
+        msg.data = "armsDown"
+        self.pub_action_req_arms.publish(msg)
+        
         # Sleep so that the robot has time to get to the initial position
-        time.sleep(1.0)
+        time.sleep(2.5)
         self.pub_walk_control.publish(Bool(data=True))
         self.is_walking = True
         self.is_standing = False

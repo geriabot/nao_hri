@@ -62,6 +62,11 @@ HeadTrackActionServer::HeadTrackActionServer(const rclcpp::NodeOptions & options
     std::bind(&HeadTrackActionServer::handleCancel, this, _1),
     std::bind(&HeadTrackActionServer::handleAccepted, this, _1));
 
+  sub_walk_status_ = create_subscription<std_msgs::msg::Bool>(
+    "/walk_status", 10, std::bind(&HeadTrackActionServer::walkStatusCallback, this, _1));
+
+  walk_status_ = false;
+
   std::vector<float> c0 = {0.0, 0.0};
   head_pos_[c0] = "c0";
 
@@ -294,7 +299,15 @@ void HeadTrackActionServer::execute(const std::shared_ptr<GoalHandleHeadTrack> g
   rclcpp::Rate loop_rate(0.5);  // Hz
 
   while (rclcpp::ok()) {
+
     RCLCPP_INFO(this->get_logger(), "inside while");
+
+    // If walking status enabled, pause head tracking
+    if (walk_status_) {
+      RCLCPP_INFO(this->get_logger(), "Walking status enabled, pausing head tracking");
+      loop_rate.sleep();
+      continue;
+    }
 
     // Check if there is a cancel request
     if (goal_handle->is_canceling()) {
@@ -419,6 +432,7 @@ void HeadTrackActionServer::execute(const std::shared_ptr<GoalHandleHeadTrack> g
         }
         // send command
         if (tracking) {
+
           cur_head.clear();
           cur_head.emplace_back(cur_yaw);
           cur_head.emplace_back(cur_pitch);
@@ -455,6 +469,17 @@ void HeadTrackActionServer::execute(const std::shared_ptr<GoalHandleHeadTrack> g
 
     loop_rate.sleep();
   }
+}
+
+void HeadTrackActionServer::walkStatusCallback(const std_msgs::msg::Bool::SharedPtr msg)
+{
+  walk_status_ = msg->data;
+
+  // Send c0 command
+  auto message = std_msgs::msg::String();
+  message.data = "c0";
+  RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+  publisher_->publish(message);
 }
 
 }  // namespace hni_head_track_action_server

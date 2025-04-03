@@ -38,6 +38,7 @@
 #include "nao_lola_sensor_msgs/msg/joint_positions.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/bool.hpp"
 
 namespace hni_head_track_action_server
 {
@@ -60,6 +61,10 @@ private:
   rclcpp::Publisher<nao_lola_command_msgs::msg::JointPositions>::SharedPtr jpos_pub_;
   rclcpp::Publisher<nao_lola_command_msgs::msg::JointStiffnesses>::SharedPtr jstiff_pub_;
   rclcpp::Subscription<nao_lola_sensor_msgs::msg::JointPositions>::SharedPtr jpos_sub_;
+
+  // Suscription to walk status
+  rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr sub_walk_status_;
+
 
   rclcpp::Subscription<hni_interfaces::action::VideoTracker_FeedbackMessage>::SharedPtr
     obj_pos_sub_;
@@ -98,6 +103,9 @@ private:
     const std::shared_ptr<GoalHandleHeadTrack> goal_handle);
   void handleAccepted(const std::shared_ptr<GoalHandleHeadTrack> goal_handle);
   void execute(const std::shared_ptr<GoalHandleHeadTrack> goal_handle);
+  void walkStatusCallback(const std_msgs::msg::Bool::SharedPtr msg);
+
+  bool walk_status_;
 
 };  // class
 
