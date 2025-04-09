@@ -59,7 +59,8 @@ class VideoTrackerOb(Node):
         self.img_sub = self.create_subscription(
             Image, 
             #'video_frames', 
-            '/image_raw',
+            #'/image_raw',
+            '/image_rgb',
             self.image_listener_callback, 
             1)
         self.img_sub # prevent unused variable warning
@@ -134,16 +135,10 @@ class VideoTrackerOb(Node):
                 # Convert ROS Image message to OpenCV image
 
                 if self.received_frame is not None:
-                    current_frame = self.br.imgmsg_to_cv2(self.received_frame)
-                    #print('output dtype      : {}'.format(current_frame.dtype))
-                    #print('output shape      : {}'.format(current_frame.shape))
-                    #print('output encoding      : {}'.format(current_frame.tostring()))
 
-                    img = current_frame.reshape(480, 640, 2)
-                    rgb = cv2.cvtColor(img, cv2.COLOR_YUV2BGR_YUYV)
-                    rgb = cv2.rotate(rgb, cv2.ROTATE_180)
-                    self.frame = rgb
-                    
+                    rgb_frame = self.br.imgmsg_to_cv2(self.received_frame, desired_encoding='rgb8')
+                    self.frame = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2BGR)
+
                     # Run YOLOv8 tracking on the frame, persisting tracks between frames
                     results = self.model.track(self.frame, persist=True, tracker="bytetrack.yaml")
 

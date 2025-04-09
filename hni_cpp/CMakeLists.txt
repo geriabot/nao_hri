@@ -52,6 +52,7 @@ rclcpp_components_register_node( joints_play_server
     EXECUTABLE joints_play_action_server
 )
 
+
 # Install
 install(
   DIRECTORY include/
@@ -222,6 +223,11 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
   INCLUDES DESTINATION include)
+
+install (
+  DIRECTORY sounds/
+  DESTINATION share/${PROJECT_NAME}/sounds/  
+)
 
 #################### CHAT ACTION CLIENT ###########################
 add_library(chat_client SHARED

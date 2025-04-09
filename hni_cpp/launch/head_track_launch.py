@@ -50,4 +50,10 @@ def generate_launch_description():
                 ('nao_pos_action/_action/send_goal', 'nao_pos_action_head/_action/send_goal'),
             ],
         ),
+        Node(
+            package='hni_py',
+            executable='camera_conversion_node',
+            name='camera_conversion_node',
+            output='screen'
+        ),
     ])

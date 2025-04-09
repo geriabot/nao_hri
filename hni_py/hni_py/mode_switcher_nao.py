@@ -41,7 +41,6 @@ class ModeSwitcher(Node):
 
         self.launch_base_nodes()
         self.launch_experiments()
-        self.set_initial_positions()
         self.set_initial_status()
 
         self.get_logger().info("ModeSwitcher started successfully.")
@@ -65,15 +64,6 @@ class ModeSwitcher(Node):
         subprocess.Popen([
             "ros2", "launch", "hni_cpp", "experiment_nao_launch.py"
         ], cwd=workspace_path)
-        
-    def set_initial_positions(self):
-        self.get_logger().info("Waiting for subscribers to connect for initial positions...")
-        while self.pub_initial_joints_position.get_subscription_count() == 0 and rclpy.ok():
-            time.sleep(0.5)
-        if rclpy.ok():
-            msg = JointPositions(indexes=[3, 19, 2, 18], positions=[0.2, -0.2, 1.5, 1.5])
-            self.pub_initial_joints_position.publish(msg)
-            self.get_logger().info("Initial positions published.")
 
     def set_initial_status(self):
         self.get_logger().info("Waiting for subscribers to connect for walk status...")

@@ -28,6 +28,7 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include <cstdlib>
 
 #include "hni_interfaces/action/chat_play.hpp"
 #include "hni_interfaces/action/joints_play.hpp"
@@ -363,6 +364,26 @@ void ChatActionServer::execute(
             action_msg.data = action_path; 
             nao_pos_publisher_->publish(action_msg);
             RCLCPP_INFO(this->get_logger(), ("Sending action to nao_pos_server: " + key_words[i]).c_str());
+
+            if (key_words[i] == "bailar") {
+              const char * ament_prefix_path = std::getenv("AMENT_PREFIX_PATH");
+              std::string audio_file;
+          
+              if (ament_prefix_path != nullptr) {
+                  std::string prefix_paths(ament_prefix_path);
+                  std::string first_prefix = prefix_paths.substr(0, prefix_paths.find(':'));
+          
+                  audio_file = first_prefix + "/share/hni_cpp/sounds/dance1.ogg";
+              } else {
+                  RCLCPP_ERROR(this->get_logger(), "AMENT_PREFIX_PATH not found.");
+                  return;
+              }
+          
+              std::string cmd = "ffplay -nodisp -autoexit -loglevel quiet " + audio_file + " &";
+              std::system(cmd.c_str());
+          
+              RCLCPP_INFO(this->get_logger(), ("Playing audio 'dance1' from: " + audio_file).c_str());
+            }
             
             // auto send_goal_options =
             //   rclcpp_action::Client<hni_interfaces::action::JointsPlay>::SendGoalOptions();

@@ -31,6 +31,7 @@ setup(
             'yolo_video_track_server = hni_py.yolo_video_track_server:main',
             'mode_switcher_pc = hni_py.mode_switcher_pc:main',
             'mode_switcher_nao = hni_py.mode_switcher_nao:main',
+            'camera_conversion_node = hni_py.camera_conversion_node:main',
         ],
     },
     
