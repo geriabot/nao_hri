@@ -51,7 +51,7 @@ def generate_launch_description():
             ],
         ),
         Node(
-            package='hni_py',
+            package='nao_ros2',
             executable='camera_conversion_node',
             name='camera_conversion_node',
             output='screen'
