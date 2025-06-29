@@ -72,7 +72,7 @@ class VideoTrackerOb(Node):
 
         parameter_descriptor = ParameterDescriptor(description='This parameter sets the Yolo tracking model you want to use')
 
-        self.declare_parameter('yolo_track_model', 'src/hni/hni_py/hni_py/models/yolov8n-face.pt', parameter_descriptor)
+        self.declare_parameter('yolo_track_model', 'src/nao_hri/hni_py/hni_py/models/yolov8n-face.pt', parameter_descriptor)
 
         model_param = self.get_parameter('yolo_track_model').get_parameter_value().string_value
 
