@@ -59,7 +59,7 @@ class VideoTrackerOb(Node):
         self.img_sub = self.create_subscription(
             Image, 
             #'video_frames', 
-            '/image_raw',
+            '/image_rgb',
             self.image_listener_callback, 
             1)
         self.img_sub # prevent unused variable warning
